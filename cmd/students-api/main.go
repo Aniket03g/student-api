@@ -11,17 +11,26 @@ import (
 	"time"
 
 	"github.com/Aniket03g/students-api/internal/config"
-	"github.com/Aniket03g/students-api/internal/config/http/handleres/student"
+	"github.com/Aniket03g/students-api/internal/http/handleres/student"
+	"github.com/Aniket03g/students-api/internal/storage/sqlite"
 )
 
 func main() {
 	//load config
 	cfg := config.Mustload()
 	//database setup
+
+	storage, err := sqlite.New(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	slog.Info("storage initialized", slog.String("env", cfg.Env), slog.String("version", "1.0.0"))
+
 	//setup router
 	router := http.NewServeMux()
 
-	router.HandleFunc("POST /api/students", student.New())
+	router.HandleFunc("POST /api/students", student.New(storage))
 	//setup server
 
 	server := http.Server{
@@ -49,9 +58,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := server.Shutdown(ctx)
-	if err != nil {
-		slog.Error("Server Shutdown Failed", slog.String("error", err.Error()))
+	if err := server.Shutdown(ctx); err != nil {
+		slog.Error("failed to shutdown server", slog.String("error", err.Error()))
 	}
 
 	slog.Info("server shutdown succesfully") //we did graceful shutdown here
