@@ -9,9 +9,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-//var _ storage.Storage = (*Sqlite)(nil)
-
-// added the _ above are using the sqlite indirectly
 type Sqlite struct {
 	Db *sql.DB
 }
@@ -23,14 +20,12 @@ func New(cfg *config.Config) (*Sqlite, error) {
 		return nil, err
 	}
 
-	//used backticks `` here for multiline formating
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS students (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	name TEXT,
-	email TEXT,
-	age INTEGER
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT,
+		email TEXT,
+		age INTEGER
 	)`)
-
 	if err != nil {
 		return nil, err
 	}
@@ -38,12 +33,10 @@ func New(cfg *config.Config) (*Sqlite, error) {
 	return &Sqlite{
 		Db: db,
 	}, nil
-
 }
 
-// receiver func to implement interface, to make the db as plug and play dependency
+// CreateStudent method implements the Storage interface
 func (s *Sqlite) CreateStudent(name string, email string, age int) (int64, error) {
-
 	stmt, err := s.Db.Prepare("INSERT INTO students (name, email, age) VALUES (?, ?, ?)")
 	if err != nil {
 		return 0, err
@@ -62,9 +55,9 @@ func (s *Sqlite) CreateStudent(name string, email string, age int) (int64, error
 	}
 
 	return lastid, nil
-
 }
 
+// GetStudentById method implements the Storage interface
 func (s *Sqlite) GetStudentById(id int64) (types.Student, error) {
 	stmt, err := s.Db.Prepare("SELECT id, name, email, age FROM students WHERE id = ? LIMIT 1")
 	if err != nil {
@@ -84,4 +77,34 @@ func (s *Sqlite) GetStudentById(id int64) (types.Student, error) {
 	}
 
 	return student, nil
+}
+
+// GetStudents method implements the Storage interface
+func (s *Sqlite) GetStudents() ([]types.Student, error) {
+	stmt, err := s.Db.Prepare("SELECT id, name, email, age FROM students")
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var students []types.Student
+
+	for rows.Next() {
+		var student types.Student
+
+		err := rows.Scan(&student.Id, &student.Name, &student.Email, &student.Age)
+		if err != nil {
+			return nil, err
+		}
+
+		students = append(students, student)
+	}
+
+	return students, nil
 }
