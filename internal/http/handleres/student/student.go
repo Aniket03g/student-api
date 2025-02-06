@@ -95,3 +95,28 @@ func GetList(storage storage.Storage) http.HandlerFunc {
 		response.WriteJson(w, http.StatusOK, students)
 	}
 }
+
+func Update(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		//1. get ID from URL
+		id := r.PathValue("id")
+		intId, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError((err)))
+			return
+		}
+
+		//2. Read request body
+		var student types.Student
+		json.NewDecoder(r.Body).Decode(&student)
+
+		//3. Validate input
+		validator.New().Struct(student)
+
+		//4. Call storage.UpdateStudent
+		storage.UpdateStudent(intId, student.Name, student.Email, student.Age)
+
+		//5. Return response
+		response.WriteJson(w, http.StatusOK, student)
+	}
+}
