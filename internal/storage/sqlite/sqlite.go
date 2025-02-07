@@ -120,3 +120,15 @@ func (s *Sqlite) UpdateStudent(id int64, name string, email string, age int) err
 	_, err = stmt.Exec(name, email, age, id)
 	return err
 }
+
+// Delete method implements the Storage interface
+func (s *Sqlite) DeleteStudent(id int64) error {
+	stmt, err := s.Db.Prepare("DELETE FROM students WHERE id = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(id)
+	return err
+}
